@@ -2,7 +2,7 @@ install:
 	composer install
 
 lint:
-	composer exec --verbose phpcs -- --standard=PSR12 src public
+	composer exec --verbose phpcs -- --standard=PSR12 public
 
 PORT ?= 8000
 start:
