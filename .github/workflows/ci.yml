@@ -28,5 +28,5 @@ jobs:
           args: >
             -Dsonar.projectKey=Neizzzy_php-project-9
             -Dsonar.organization=neizzzy
-            -Dsonar.sources=public/
+            -Dsonar.sources=public/,app/
             -Dsonar.php.coverage.reportPaths=build/logs/clover.xml
