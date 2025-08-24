@@ -1,0 +1,9 @@
+{% if flash is defined %}
+    {% for type, messages in flash %}
+        {% for message in messages %}
+            <div class="alert alert-{{ type }}" role="alert">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+{% endif %}
