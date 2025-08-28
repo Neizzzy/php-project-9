@@ -14,8 +14,10 @@ require __DIR__ . '/../vendor/autoload.php';
 
 session_start();
 
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
-$dotenv->load();
+if (file_exists(__DIR__ . '/../.env')) {
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+    $dotenv->load();
+}
 
 $container = new Container();
 
@@ -29,8 +31,17 @@ $container->set('flash', function () {
 
 $container->set(\PDO::class, function () {
     try {
+        $databaseUrl = $_ENV['DATABASE_URL'];
+        if (!$databaseUrl) {
+            throw new RuntimeException('DATABASE_URL environment is not defined');
+        }
+
         $params = parse_url($_ENV['DATABASE_URL']);
-        $connStr = sprintf(
+        if (!isset($params['host'], $params['path'], $params['user'], $params['pass'])) {
+            throw new RuntimeException('Invalid DATABASE_URL params');
+        }
+
+        $dsn = sprintf(
             "pgsql:host=%s;port=%s;dbname=%s;user=%s;password=%s",
             $params['host'],
             $params['port'] ?? 5432,
@@ -39,12 +50,14 @@ $container->set(\PDO::class, function () {
             $params['pass']
         );
 
-        $conn = new \PDO($connStr);
+        $conn = new \PDO($dsn);
         $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
         return $conn;
     } catch (\PDOException $e) {
         die("Database Error: " . $e->getMessage());
+    } catch (RuntimeException $e) {
+        die("Runtime error: " . $e->getMessage());
     }
 });
 
