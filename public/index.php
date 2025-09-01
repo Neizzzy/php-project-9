@@ -3,6 +3,8 @@
 use Carbon\Carbon;
 use DI\Container;
 use Hexlet\Code\Model\Url;
+use Hexlet\Code\Model\UrlCheck;
+use Hexlet\Code\Repository\UrlCheckRepository;
 use Hexlet\Code\Repository\UrlRepository;
 use Slim\Factory\AppFactory;
 use Slim\Flash\Messages;
@@ -55,8 +57,10 @@ $container->set(\PDO::class, function () {
 
         return $conn;
     } catch (\PDOException $e) {
+        error_log("Database Error: " . $e->getMessage());
         die("Database Error: " . $e->getMessage());
     } catch (RuntimeException $e) {
+        error_log("Runtime Error: " . $e->getMessage());
         die("Runtime error: " . $e->getMessage());
     }
 });
@@ -76,7 +80,7 @@ $app->get('/', function ($request, $response) {
 })->setName('home');
 
 $app->get('/urls', function ($request, $response) {
-    $urls = $this->get(UrlRepository::class)->all();
+    $urls = $this->get(UrlRepository::class)->urlsWithLastCheck();
 
     $params = ['urls' => $urls];
     $twig = $this->get(Twig::class);
@@ -104,9 +108,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
             return $response->withRedirect($router->urlFor('urls.show', ['id' => $sameName->getId()]), 301);
         }
 
-        $url = new Url();
-        $url->setName($normalizedUrl);
-        $url->setCreatedAt(Carbon::now());
+        $url = new Url($normalizedUrl);
         $urlRepository->create($url);
 
         $this->get('flash')->addMessage('success', 'Страница успешно добавлена');
@@ -124,21 +126,38 @@ $app->post('/urls', function ($request, $response) use ($router) {
 })->setName('urls.store');
 
 $app->get('/urls/{id}', function ($request, $response, $args) {
-    $id = $args['id'];
+    $id = (int) $args['id'];
     $url = $this->get(UrlRepository::class)->findById($id);
 
     if (!$url) {
         return $response->write('Страница не найдена!')->withStatus(404);
     }
 
+    $urlChecks = $this->get(UrlCheckRepository::class)->findByUrlId($url->getId());
+
     $messages = $this->get('flash')->getMessages();
     $params = [
         'url' => $url,
+        'checks' => $urlChecks,
         'flash' => $messages
     ];
     $twig = $this->get(Twig::class);
 
     return $twig->render($response, 'urls/show.html.twig', $params);
 })->setName('urls.show');
+
+$app->post('/urls/{url_id}/checks', function ($request, $response, $args) use ($router) {
+    $urlId = (int) $args['url_id'];
+    $url = $this->get(UrlRepository::class)->findById($urlId);
+
+    if (!$url) {
+        return $response->write('Страница не найдена!')->withStatus(404);
+    }
+
+    $urlCheck = new UrlCheck($url->getId());
+    $this->get(UrlCheckRepository::class)->create($urlCheck);
+
+    return $response->withRedirect($router->urlFor('urls.show', ['id' => $url->getId()]), 301);
+})->setName('checks.store');
 
 $app->run();
