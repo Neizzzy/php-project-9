@@ -7,10 +7,21 @@ use Carbon\Carbon;
 class Url
 {
     private ?int $id = null;
-    private ?string $name = null;
-    private ?Carbon $createdAt = null;
+    private string $name;
+    private Carbon $createdAt;
 
-    public function getId(): int
+    public function __construct(string $name, ?string $createdAt = null)
+    {
+        $this->name = $name;
+
+        if (is_null($createdAt)) {
+            $this->createdAt = Carbon::now();
+        } else {
+            $this->createdAt = Carbon::parse($createdAt);
+        }
+    }
+
+    public function getId(): ?int
     {
         return $this->id;
     }
@@ -30,13 +41,13 @@ class Url
         $this->id = $id;
     }
 
-    public function setName(string $url): void
+    public function setName(string $name): void
     {
-        $this->name = $url;
+        $this->name = $name;
     }
 
-    public function setCreatedAt(Carbon $createAt): void
+    public function setCreatedAt(string $createAt): void
     {
-        $this->createdAt = $createAt;
+        $this->createdAt = Carbon::parse($createAt);
     }
 }
