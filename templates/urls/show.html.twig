@@ -22,7 +22,7 @@
             </table>
         </div>
         <h2 class="mt-5 mb-3">Проверки</h2>
-        <form action="" method="post">
+        <form action="{{ url_for('checks.store', {'url_id': url.id}) }}" method="post">
             <input type="submit" value="Запустить проверку" class="btn btn-primary">
         </form>
         <div class="table-responsive mt-3">
@@ -38,9 +38,16 @@
                 </tr>
                 </thead>
                 <tbody>
+                    {% for check in checks %}
                     <tr>
-
+                        <td>{{ check.id }}</td>
+                        <td>{{ check.statusCode }}</td>
+                        <td>{{ check.h1 }}</td>
+                        <td>{{ check.title }}</td>
+                        <td>{{ check.description }}</td>
+                        <td>{{ check.createdAt }}</td>
                     </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
