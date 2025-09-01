@@ -21,11 +21,36 @@ class UrlRepository
 
         $urls = [];
         while ($row = $stmt->fetch()) {
-            $url = $this->hydrateUrl($row);
+            $url = $this->hydrate($row);
             $urls[] = $url;
         }
 
         return $urls;
+    }
+
+    public function urlsWithLastCheck(): array
+    {
+        $sql = "SELECT
+            urls.id,
+            urls.name,
+            urls.created_at AS created_at,
+            MAX(url_checks.created_at) AS check_created_at,
+            url_checks.status_code AS check_status_code
+        FROM urls
+        LEFT JOIN url_checks ON
+            urls.id = url_checks.url_id
+        GROUP BY urls.id, url_checks.status_code
+        ORDER BY urls.id
+        ";
+
+        $stmt = $this->conn->query($sql);
+
+        $urlChecks = [];
+        while ($row = $stmt->fetch()) {
+            $urlChecks[] = $row;
+        }
+
+        return $urlChecks;
     }
 
     public function findById(int $id): ?Url
@@ -35,7 +60,7 @@ class UrlRepository
         $stmt->execute([$id]);
 
         if ($row = $stmt->fetch()) {
-            return $this->hydrateUrl($row);
+            return $this->hydrate($row);
         }
 
         return null;
@@ -48,7 +73,7 @@ class UrlRepository
         $stmt->execute([$name]);
 
         if ($row = $stmt->fetch()) {
-            return $this->hydrateUrl($row);
+            return $this->hydrate($row);
         }
 
         return null;
@@ -67,12 +92,10 @@ class UrlRepository
         $url->setId($this->conn->lastInsertId());
     }
 
-    private function hydrateUrl(array $row): Url
+    private function hydrate(array $row): Url
     {
-        $url = new Url();
+        $url = new Url($row['name'], $row['created_at']);
         $url->setId($row['id']);
-        $url->setName($row['name']);
-        $url->setCreatedAt(Carbon::create($row['created_at']));
 
         return $url;
     }
