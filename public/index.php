@@ -2,6 +2,11 @@
 
 use Carbon\Carbon;
 use DI\Container;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\ServerException;
 use Hexlet\Code\Model\Url;
 use Hexlet\Code\Model\UrlCheck;
 use Hexlet\Code\Repository\UrlCheckRepository;
@@ -155,7 +160,23 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, $args) use ($
     }
 
     $urlCheck = new UrlCheck($url->getId());
-    $this->get(UrlCheckRepository::class)->create($urlCheck);
+    $client = new Client();
+
+    try {
+        $res = $client->request('GET', $url->getName());
+
+        $urlCheck->setStatusCode($res->getStatusCode());
+        $this->get(UrlCheckRepository::class)->create($urlCheck);
+
+        $this->get('flash')->addMessage('success', 'Страница успешно проверена');
+    } catch (RequestException $e) {
+        $urlCheck->setStatusCode($e->getCode());
+        $this->get(UrlCheckRepository::class)->create($urlCheck);
+
+        $this->get('flash')->addMessage('warning', 'Проверка была выполнена успешно, но сервер ответил с ошибкой');
+    } catch (ConnectException) {
+        $this->get('flash')->addMessage('danger', 'Произошла ошибка при проверке, не удалось подключиться');
+    }
 
     return $response->withRedirect($router->urlFor('urls.show', ['id' => $url->getId()]), 301);
 })->setName('checks.store');
