@@ -30,18 +30,16 @@ class UrlRepository
 
     public function urlsWithLastCheck(): array
     {
-        $sql = "SELECT
-            urls.id,
-            urls.name,
-            urls.created_at AS created_at,
-            MAX(url_checks.created_at) AS check_created_at,
-            url_checks.status_code AS check_status_code
-        FROM urls
-        LEFT JOIN url_checks ON
-            urls.id = url_checks.url_id
-        GROUP BY urls.id, url_checks.status_code
-        ORDER BY urls.id
-        ";
+        $sql = "SELECT DISTINCT ON (u.id)
+            u.id,
+            u.name,
+            u.created_at AS created_at,
+            uc.created_at AS check_created_at,
+            uc.status_code AS check_status_code
+        FROM urls AS u
+        LEFT JOIN url_checks AS uc ON
+            u.id = uc.url_id
+        ORDER BY u.id ASC, uc.created_at DESC";
 
         $stmt = $this->conn->query($sql);
 
