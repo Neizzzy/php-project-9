@@ -1,12 +1,9 @@
 <?php
 
-use Carbon\Carbon;
 use DI\Container;
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Exception\ServerException;
 use Hexlet\Code\Model\Url;
 use Hexlet\Code\Model\UrlCheck;
 use Hexlet\Code\Repository\UrlCheckRepository;
