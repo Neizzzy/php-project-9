@@ -19,6 +19,10 @@ class UrlRepository
         $sql = "SELECT * FROM urls";
         $stmt = $this->conn->query($sql);
 
+        if ($stmt === false) {
+            return [];
+        }
+
         $urls = [];
         while ($row = $stmt->fetch()) {
             $url = $this->hydrate($row);
@@ -42,6 +46,10 @@ class UrlRepository
         ORDER BY u.id ASC, uc.created_at DESC";
 
         $stmt = $this->conn->query($sql);
+
+        if ($stmt === false) {
+            return [];
+        }
 
         $urlChecks = [];
         while ($row = $stmt->fetch()) {
@@ -87,7 +95,8 @@ class UrlRepository
         $stmt->bindParam(':createdAt', $createdAt);
         $stmt->execute();
 
-        $url->setId($this->conn->lastInsertId());
+        $lastInsertId = (int) $this->conn->lastInsertId();
+        $url->setId($lastInsertId);
     }
 
     private function hydrate(array $row): Url

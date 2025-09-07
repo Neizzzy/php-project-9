@@ -19,6 +19,10 @@ class UrlCheckRepository
         $sql = "SELECT * FROM url_checks";
         $stmt = $this->conn->query($sql);
 
+        if ($stmt === false) {
+            return [];
+        }
+
         $urlChecks = [];
         while ($row = $stmt->fetch()) {
             $urlCheck = $this->hydrate($row);
@@ -66,7 +70,8 @@ class UrlCheckRepository
         $stmt->bindParam(':created_at', $createdAt);
         $stmt->execute();
 
-        $urlCheck->setId($this->conn->lastInsertId());
+        $lastInsertId = (int) $this->conn->lastInsertId();
+        $urlCheck->setId($lastInsertId);
     }
 
     private function hydrate(array $row): UrlCheck

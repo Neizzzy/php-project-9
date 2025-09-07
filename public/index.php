@@ -135,7 +135,10 @@ $app->post('/urls', function ($request, $response) use ($router) {
         $sameName = $urlRepository->findByName($normalizedUrl);
         if ($sameName) {
             $this->get('flash')->addMessage('success', 'Страница уже существует');
-            return $response->withRedirect($router->urlFor('urls.show', ['id' => $sameName->getId()]), 301);
+            return $response->withRedirect(
+                $router->urlFor('urls.show', ['id' => (string) $sameName->getId()]),
+                301
+            );
         }
 
         $url = new Url($normalizedUrl);
@@ -143,7 +146,10 @@ $app->post('/urls', function ($request, $response) use ($router) {
 
         $this->get('flash')->addMessage('success', 'Страница успешно добавлена');
 
-        return $response->withRedirect($router->urlFor('urls.show', ['id' => $url->getId()]), 301);
+        return $response->withRedirect(
+            $router->urlFor('urls.show', ['id' => (string) $url->getId()]),
+            301
+        );
     }
 
     $twig = $this->get(Twig::class);
@@ -212,7 +218,8 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, $args) use ($
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
     } catch (RequestException $e) {
         $statusCode = $e->getCode();
-        $reason = $e->getResponse()->getReasonPhrase();
+        $response = $e->getResponse();
+        $reason = $response !== null ? $response->getReasonPhrase() : '';
         $text = "$statusCode $reason";
 
         $urlCheck->setStatusCode($statusCode);
@@ -226,7 +233,10 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, $args) use ($
         $this->get('flash')->addMessage('danger', 'Произошла ошибка при проверке, не удалось подключиться');
     }
 
-    return $response->withRedirect($router->urlFor('urls.show', ['id' => $url->getId()]), 301);
+    return $response->withRedirect(
+        $router->urlFor('urls.show', ['id' => (string) $url->getId()]),
+        301
+    );
 })->setName('checks.store');
 
 $app->run();
