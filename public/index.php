@@ -1,6 +1,7 @@
 <?php
 
 use DI\Container;
+use DiDom\Document;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
@@ -8,11 +9,16 @@ use Hexlet\Code\Model\Url;
 use Hexlet\Code\Model\UrlCheck;
 use Hexlet\Code\Repository\UrlCheckRepository;
 use Hexlet\Code\Repository\UrlRepository;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Exception\HttpNotFoundException;
 use Slim\Factory\AppFactory;
 use Slim\Flash\Messages;
 use Slim\Middleware\MethodOverrideMiddleware;
+use Slim\Psr7\Response;
 use Slim\Views\Twig;
 use Slim\Views\TwigMiddleware;
+
+/** @var Psr\Container\ContainerInterface $this */
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -60,10 +66,10 @@ $container->set(\PDO::class, function () {
         return $conn;
     } catch (\PDOException $e) {
         error_log("Database Error: " . $e->getMessage());
-        die("Database Error: " . $e->getMessage());
+        throw $e;
     } catch (RuntimeException $e) {
         error_log("Runtime Error: " . $e->getMessage());
-        die("Runtime error: " . $e->getMessage());
+        throw $e;
     }
 });
 
@@ -71,8 +77,30 @@ $app = AppFactory::createFromContainer($container);
 
 $app->add(TwigMiddleware::create($app, $container->get(Twig::class)));
 $app->addRoutingMiddleware();
-$app->addErrorMiddleware(true, true, true);
 $app->add(MethodOverrideMiddleware::class);
+
+$errorMiddleware = $app->addErrorMiddleware(true, true, true);
+$errorMiddleware->setErrorHandler(
+    [RuntimeException::class, PDOException::class],
+    function (Request $request, Throwable $exception) {
+        error_log($exception->getMessage());
+
+        $twig = $this->get(Twig::class);
+        $response = new Response();
+
+        return $twig->render($response, 'errors/500.html.twig')->withStatus(500);
+    }
+);
+
+$errorMiddleware->setErrorHandler(
+    HttpNotFoundException::class,
+    function () {
+        $twig = $this->get(Twig::class);
+        $response = new Response();
+
+        return $twig->render($response, 'errors/404.html.twig')->withStatus(404);
+    }
+);
 
 $router = $app->getRouteCollector()->getRouteParser();
 
@@ -132,7 +160,7 @@ $app->get('/urls/{id}', function ($request, $response, $args) {
     $url = $this->get(UrlRepository::class)->findById($id);
 
     if (!$url) {
-        return $response->write('Страница не найдена!')->withStatus(404);
+        throw new HttpNotFoundException($request);
     }
 
     $urlChecks = $this->get(UrlCheckRepository::class)->findByUrlId($url->getId());
@@ -153,7 +181,7 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, $args) use ($
     $url = $this->get(UrlRepository::class)->findById($urlId);
 
     if (!$url) {
-        return $response->write('Страница не найдена!')->withStatus(404);
+        throw new HttpNotFoundException($request);
     }
 
     $urlCheck = new UrlCheck($url->getId());
@@ -161,13 +189,36 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, $args) use ($
 
     try {
         $res = $client->request('GET', $url->getName());
+        $statusCode = $res->getStatusCode();
 
-        $urlCheck->setStatusCode($res->getStatusCode());
+        $document = new Document($url->getName(), true);
+
+        /** @phpstan-ignore method.notFound */
+        $h1 = trim(optional($document->first('h1'))->text());
+
+        /** @phpstan-ignore method.notFound */
+        $title = trim(optional($document->first('title'))->text());
+
+        /** @phpstan-ignore method.notFound */
+        $description = trim(optional($document->first('meta[name="description"]'))->getAttribute('content'));
+
+        $urlCheck->setStatusCode($statusCode);
+        $urlCheck->setH1($h1);
+        $urlCheck->setTitle($title);
+        $urlCheck->setDescription($description);
+
         $this->get(UrlCheckRepository::class)->create($urlCheck);
 
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
     } catch (RequestException $e) {
-        $urlCheck->setStatusCode($e->getCode());
+        $statusCode = $e->getCode();
+        $reason = $e->getResponse()->getReasonPhrase();
+        $text = "$statusCode $reason";
+
+        $urlCheck->setStatusCode($statusCode);
+        $urlCheck->setH1($text);
+        $urlCheck->setTitle($text);
+
         $this->get(UrlCheckRepository::class)->create($urlCheck);
 
         $this->get('flash')->addMessage('warning', 'Проверка была выполнена успешно, но сервер ответил с ошибкой');
