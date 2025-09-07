@@ -20,6 +20,9 @@ jobs:
       - name: Run linter
         run: make lint
 
+      - name: Run PHPStan
+        run: make analyse
+
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
