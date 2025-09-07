@@ -152,7 +152,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
         'url' => $urlData
     ];
 
-    return $twig->render($response, 'home.html.twig', $params);
+    return $twig->render($response, 'home.html.twig', $params)->withStatus(422);
 })->setName('urls.store');
 
 $app->get('/urls/{id}', function ($request, $response, $args) {
