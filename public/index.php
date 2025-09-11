@@ -218,8 +218,8 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, $args) use ($
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
     } catch (RequestException $e) {
         $statusCode = $e->getCode();
-        $response = $e->getResponse();
-        $reason = $response !== null ? $response->getReasonPhrase() : '';
+        $exceptionResponse = $e->getResponse();
+        $reason = $exceptionResponse !== null ? $exceptionResponse->getReasonPhrase() : '';
         $text = "$statusCode $reason";
 
         $urlCheck->setStatusCode($statusCode);
