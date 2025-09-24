@@ -2,7 +2,6 @@
 
 namespace Hexlet\Code\Repository;
 
-use Carbon\Carbon;
 use Hexlet\Code\Model\UrlCheck;
 
 class UrlCheckRepository
