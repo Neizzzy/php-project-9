@@ -79,6 +79,7 @@ class UrlController extends Controller
     /**
      * @throws NotFoundExceptionInterface
      * @throws ContainerExceptionInterface
+     * @param array<string, mixed> $args
      */
     public function show(Request $request, Response $response, array $args): Response
     {

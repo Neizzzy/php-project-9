@@ -24,6 +24,7 @@ class UrlCheckController extends Controller
      * @throws GuzzleException
      * @throws NotFoundExceptionInterface
      * @throws InvalidSelectorException
+     * @param array<string, mixed> $args
      */
     public function store(Request $request, Response $response, array $args): Response
     {
