@@ -2,7 +2,7 @@
 
 namespace Hexlet\Code\Repository;
 
-use Carbon\Carbon;
+use Hexlet\Code\DTO\UrlWithLastCheckDTO;
 use Hexlet\Code\Model\Url;
 
 class UrlRepository
@@ -53,7 +53,15 @@ class UrlRepository
 
         $urlChecks = [];
         while ($row = $stmt->fetch()) {
-            $urlChecks[] = $row;
+            $urlWithLastCheck = new UrlWithLastCheckDTO(
+                $row['id'],
+                $row['name'],
+                $row['created_at'],
+                $row['check_created_at'],
+                $row['check_status_code']
+            );
+
+            $urlChecks[] = $urlWithLastCheck;
         }
 
         return $urlChecks;
