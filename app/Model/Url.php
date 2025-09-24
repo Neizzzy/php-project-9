@@ -40,14 +40,4 @@ class Url
     {
         $this->id = $id;
     }
-
-    public function setName(string $name): void
-    {
-        $this->name = $name;
-    }
-
-    public function setCreatedAt(string $createAt): void
-    {
-        $this->createdAt = Carbon::parse($createAt);
-    }
 }

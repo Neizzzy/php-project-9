@@ -65,11 +65,6 @@ class UrlCheck
         $this->id = $id;
     }
 
-    public function setUrlId(int $urlId): void
-    {
-        $this->urlId = $urlId;
-    }
-
     public function setStatusCode(?int $code): void
     {
         $this->statusCode = $code;
@@ -88,10 +83,5 @@ class UrlCheck
     public function setDescription(?string $description): void
     {
         $this->description = $description;
-    }
-
-    public function setCreatedAt(string $createdAt): void
-    {
-        $this->createdAt = Carbon::parse($createdAt);
     }
 }
