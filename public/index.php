@@ -4,7 +4,8 @@ use DI\Container;
 use Hexlet\Code\Controller\PageController;
 use Hexlet\Code\Controller\UrlCheckController;
 use Hexlet\Code\Controller\UrlController;
-use Psr\Http\Message\ServerRequestInterface as Request;
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
 use Slim\Exception\HttpNotFoundException;
 use Slim\Factory\AppFactory;
 use Slim\Flash\Messages;
@@ -24,6 +25,9 @@ if (file_exists(__DIR__ . '/../.env')) {
     $dotenv->load();
 }
 
+$logger = new Logger('app');
+$logger->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log'));
+
 $container = new Container();
 
 $container->set(Twig::class, function () {
@@ -34,7 +38,7 @@ $container->set('flash', function () {
     return new Messages();
 });
 
-$container->set(\PDO::class, function () {
+$container->set(\PDO::class, function () use ($logger) {
     try {
         $databaseUrl = $_ENV['DATABASE_URL'];
         if (!$databaseUrl) {
@@ -55,15 +59,15 @@ $container->set(\PDO::class, function () {
             $params['pass']
         );
 
-        $conn = new \PDO($dsn);
+        $conn = new PDO($dsn);
         $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
         return $conn;
-    } catch (\PDOException $e) {
-        error_log("Database Error: " . $e->getMessage());
+    } catch (PDOException $e) {
+        $logger->error('Database Error', ['exception' => $e]);
         throw $e;
     } catch (RuntimeException $e) {
-        error_log("Runtime Error: " . $e->getMessage());
+        $logger->error('Runtime Error', ['exception' => $e]);
         throw $e;
     }
 });
@@ -77,9 +81,7 @@ $app->add(MethodOverrideMiddleware::class);
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 $errorMiddleware->setErrorHandler(
     [RuntimeException::class, PDOException::class],
-    function (Request $request, Throwable $exception) {
-        error_log($exception->getMessage());
-
+    function () {
         $twig = $this->get(Twig::class);
         $response = new Response();
 
