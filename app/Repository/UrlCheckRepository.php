@@ -3,6 +3,7 @@
 namespace Hexlet\Code\Repository;
 
 use Hexlet\Code\Model\UrlCheck;
+use Illuminate\Support\Collection;
 
 class UrlCheckRepository
 {
@@ -13,37 +14,18 @@ class UrlCheckRepository
         $this->conn = $conn;
     }
 
-    public function all(): array
-    {
-        $sql = "SELECT * FROM url_checks";
-        $stmt = $this->conn->query($sql);
-
-        if ($stmt === false) {
-            return [];
-        }
-
-        $urlChecks = [];
-        while ($row = $stmt->fetch()) {
-            $urlCheck = $this->hydrate($row);
-            $urlChecks[] = $urlCheck;
-        }
-
-        return $urlChecks;
-    }
-
-    public function findByUrlId(int $urlId): array
+    /**
+     * @return Collection<int, UrlCheck>
+     */
+    public function findByUrlId(int $urlId): Collection
     {
         $sql = "SELECT * FROM url_checks WHERE url_id = :url_id ORDER BY id DESC";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([$urlId]);
 
-        $urlChecks = [];
-        while ($row = $stmt->fetch()) {
-            $urlCheck = $this->hydrate($row);
-            $urlChecks[] = $urlCheck;
-        }
-
-        return $urlChecks;
+        return collect($stmt->fetchAll())->map(function ($row) {
+            return $this->hydrate($row);
+        });
     }
 
     public function create(UrlCheck $urlCheck): void
@@ -73,6 +55,9 @@ class UrlCheckRepository
         $urlCheck->setId($lastInsertId);
     }
 
+    /**
+     * @param array<string, mixed> $row
+     */
     private function hydrate(array $row): UrlCheck
     {
         $urlCheck = new UrlCheck($row['url_id'], $row['created_at']);

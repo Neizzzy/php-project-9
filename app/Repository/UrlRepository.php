@@ -4,6 +4,7 @@ namespace Hexlet\Code\Repository;
 
 use Hexlet\Code\DTO\UrlWithLastCheckDTO;
 use Hexlet\Code\Model\Url;
+use Illuminate\Support\Collection;
 
 class UrlRepository
 {
@@ -14,25 +15,10 @@ class UrlRepository
         $this->conn = $pdo;
     }
 
-    public function all(): array
-    {
-        $sql = "SELECT * FROM urls";
-        $stmt = $this->conn->query($sql);
-
-        if ($stmt === false) {
-            return [];
-        }
-
-        $urls = [];
-        while ($row = $stmt->fetch()) {
-            $url = $this->hydrate($row);
-            $urls[] = $url;
-        }
-
-        return $urls;
-    }
-
-    public function urlsWithLastCheck(): array
+    /**
+     * @return Collection<int, UrlWithLastCheckDTO>
+     */
+    public function urlsWithLastCheck(): Collection
     {
         $sql = "SELECT DISTINCT ON (u.id)
             u.id,
@@ -47,22 +33,17 @@ class UrlRepository
         $stmt = $this->conn->query($sql);
 
         if ($stmt === false) {
-            return [];
+            return collect();
         }
 
-        $urlChecks = [];
-        while ($row = $stmt->fetch()) {
-            $urlWithLastCheck = new UrlWithLastCheckDTO(
+        return collect($stmt->fetchAll())->map(function ($row) {
+            return new UrlWithLastCheckDTO(
                 $row['id'],
                 $row['name'],
                 $row['check_created_at'],
                 $row['check_status_code']
             );
-
-            $urlChecks[] = $urlWithLastCheck;
-        }
-
-        return $urlChecks;
+        });
     }
 
     public function findById(int $id): ?Url
@@ -105,6 +86,9 @@ class UrlRepository
         $url->setId($lastInsertId);
     }
 
+    /**
+     * @param array<string, mixed> $row
+     */
     private function hydrate(array $row): Url
     {
         $url = new Url($row['name'], $row['created_at']);
