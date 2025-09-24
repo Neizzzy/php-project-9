@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1f1758e9c1ebb7e30f9336fd51e79650",
+    "content-hash": "3e62714fc1b2fc725f7847bc34901dce",
     "packages": [
         {
             "name": "carbonphp/carbon-doctrine-types",
@@ -610,16 +610,16 @@
         },
         {
             "name": "illuminate/collections",
-            "version": "v12.28.1",
+            "version": "v12.31.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/collections.git",
-                "reference": "2737a0477a3f4855a71bf8f3d0b8d32596ded628"
+                "reference": "0683d7b5210b18a2e00bc2dbc5f856a611e1f152"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/illuminate/collections/zipball/2737a0477a3f4855a71bf8f3d0b8d32596ded628",
-                "reference": "2737a0477a3f4855a71bf8f3d0b8d32596ded628",
+                "url": "https://api.github.com/repos/illuminate/collections/zipball/0683d7b5210b18a2e00bc2dbc5f856a611e1f152",
+                "reference": "0683d7b5210b18a2e00bc2dbc5f856a611e1f152",
                 "shasum": ""
             },
             "require": {
@@ -665,7 +665,7 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2025-09-02T15:31:06+00:00"
+            "time": "2025-09-23T13:51:52+00:00"
         },
         {
             "name": "illuminate/conditionable",

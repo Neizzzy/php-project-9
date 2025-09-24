@@ -33,6 +33,7 @@
         "guzzlehttp/guzzle": "^7.0",
         "imangazaliev/didom": "^2.0",
         "illuminate/support": "^12.28",
-        "monolog/monolog": "^3.9"
+        "monolog/monolog": "^3.9",
+        "illuminate/collections": "^12.31"
     }
 }
