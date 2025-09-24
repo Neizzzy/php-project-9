@@ -37,7 +37,6 @@ class UrlRepository
         $sql = "SELECT DISTINCT ON (u.id)
             u.id,
             u.name,
-            u.created_at AS created_at,
             uc.created_at AS check_created_at,
             uc.status_code AS check_status_code
         FROM urls AS u
@@ -56,7 +55,6 @@ class UrlRepository
             $urlWithLastCheck = new UrlWithLastCheckDTO(
                 $row['id'],
                 $row['name'],
-                $row['created_at'],
                 $row['check_created_at'],
                 $row['check_status_code']
             );
