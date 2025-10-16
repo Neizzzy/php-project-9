@@ -13,12 +13,13 @@ ____
 ____
 - PHP >= 8.3
 - Composer
+- Make
 
 ## Usage
 ____
 ```
 make install
-make start
+make start or make start-local
 ```
 
 Demo: https://neizzzy-page-analyser.onrender.com/
