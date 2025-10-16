@@ -2,21 +2,14 @@
 
 namespace Hexlet\Code\Controller;
 
-use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\NotFoundExceptionInterface;
 use Slim\Http\ServerRequest as Request;
+use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
-use Slim\Views\Twig;
 
 class PageController extends Controller
 {
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
-    public function home(Request $request, Response $response): Response
+    public function home(Request $request, Response $response): ResponseInterface
     {
-        $twig = $this->container->get(Twig::class);
-        return $twig->render($response, 'home.html.twig');
+        return $this->render($response, 'home.html.twig');
     }
 }

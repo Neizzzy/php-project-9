@@ -9,6 +9,7 @@ use Monolog\Logger;
 use Slim\Exception\HttpNotFoundException;
 use Slim\Factory\AppFactory;
 use Slim\Flash\Messages;
+use Slim\Interfaces\RouteParserInterface;
 use Slim\Middleware\MethodOverrideMiddleware;
 use Slim\Psr7\Response;
 use Slim\Views\Twig;
@@ -25,22 +26,26 @@ if (file_exists(__DIR__ . '/../.env')) {
     $dotenv->load();
 }
 
-$logger = new Logger('app');
-$logger->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log'));
-
 $container = new Container();
 
 $container->set(Twig::class, function () {
     return Twig::create(__DIR__ . '/../templates', ['cache' => false]);
 });
 
+$container->set(Logger::class, function () {
+    $logger = new Logger('app');
+    $logger->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log'));
+
+    return $logger;
+});
+
 $container->set('flash', function () {
     return new Messages();
 });
 
-$container->set(\PDO::class, function () use ($logger) {
+$container->set(PDO::class, function () use ($container) {
     try {
-        $databaseUrl = $_ENV['DATABASE_URL'];
+        $databaseUrl = $_ENV['DATABASE_URL'] ?? null;
         if (!$databaseUrl) {
             throw new RuntimeException('DATABASE_URL environment is not defined');
         }
@@ -64,10 +69,10 @@ $container->set(\PDO::class, function () use ($logger) {
 
         return $conn;
     } catch (PDOException $e) {
-        $logger->error('Database Error', ['exception' => $e]);
+        $container->get(Logger::class)->error('Database Error', ['exception' => $e]);
         throw $e;
     } catch (RuntimeException $e) {
-        $logger->error('Runtime Error', ['exception' => $e]);
+        $container->get(Logger::class)->error('Runtime Error', ['exception' => $e]);
         throw $e;
     }
 });
@@ -81,7 +86,10 @@ $app->add(MethodOverrideMiddleware::class);
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 $errorMiddleware->setErrorHandler(
     [RuntimeException::class, PDOException::class],
-    function () {
+    function (Throwable $e) use ($container) {
+        $logger = $container->get(Logger::class);
+        $logger->error('Error', ['exception' => $e]);
+
         $twig = $this->get(Twig::class);
         $response = new Response();
 
@@ -99,16 +107,14 @@ $errorMiddleware->setErrorHandler(
     }
 );
 
-$container->set('router', function () use ($app) {
+$container->set(RouteParserInterface::class, function () use ($app) {
     return $app->getRouteCollector()->getRouteParser();
 });
 
 $app->get('/', PageController::class . ':home')->setName('home');
-
 $app->get('/urls', UrlController::class . ':index')->setName('urls.index');
 $app->post('/urls', UrlController::class . ':store')->setName('urls.store');
 $app->get('/urls/{id}', UrlController::class . ':show')->setName('urls.show');
-
 $app->post('/urls/{url_id}/checks', UrlCheckController::class . ':store')->setName('checks.store');
 
 $app->run();

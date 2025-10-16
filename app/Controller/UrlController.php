@@ -5,34 +5,39 @@ namespace Hexlet\Code\Controller;
 use Hexlet\Code\Model\Url;
 use Hexlet\Code\Repository\UrlCheckRepository;
 use Hexlet\Code\Repository\UrlRepository;
-use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\NotFoundExceptionInterface;
+use Monolog\Logger;
 use Slim\Exception\HttpNotFoundException;
+use Slim\Flash\Messages;
+use Slim\Interfaces\RouteParserInterface;
 use Slim\Views\Twig;
 use Slim\Http\ServerRequest as Request;
 use Slim\Http\Response;
+use Psr\Http\Message\ResponseInterface;
 
 class UrlController extends Controller
 {
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
-    public function index(Request $request, Response $response): Response
-    {
-        $urls = $this->container->get(UrlRepository::class)->urlsWithLastCheck();
-
-        $params = ['urls' => $urls];
-        $twig = $this->container->get(Twig::class);
-
-        return $twig->render($response, 'urls/index.html.twig', $params);
+    public function __construct(
+        Messages $flash,
+        RouteParserInterface $router,
+        Logger $logger,
+        Twig $twig,
+        private readonly UrlRepository $urlRepository,
+        private readonly UrlCheckRepository $urlCheckRepository
+    ) {
+        parent::__construct($flash, $router, $logger, $twig);
     }
 
-    /**
-     * @throws NotFoundExceptionInterface
-     * @throws ContainerExceptionInterface
-     */
-    public function store(Request $request, Response $response): Response
+
+    public function index(Request $request, Response $response): ResponseInterface
+    {
+        $urls = $this->urlRepository->urlsWithLastCheck();
+
+        $params = ['urls' => $urls];
+
+        return $this->render($response, 'urls/index.html.twig', $params);
+    }
+
+    public function store(Request $request, Response $response): ResponseInterface
     {
         $urlData = $request->getParsedBodyParam('url', '');
 
@@ -45,61 +50,55 @@ class UrlController extends Controller
             $normalizedUrl = parse_url($urlData['name'], PHP_URL_SCHEME) . '://' .
                 parse_url($urlData['name'], PHP_URL_HOST);
 
-            $urlRepository = $this->container->get(UrlRepository::class);
-
-            $sameName = $urlRepository->findByName($normalizedUrl);
+            $sameName = $this->urlRepository->findByName($normalizedUrl);
             if ($sameName) {
-                $this->container->get('flash')->addMessage('success', 'Страница уже существует');
+                $this->flash->addMessage('success', 'Страница уже существует');
                 return $response->withRedirect(
-                    $this->container->get('router')->urlFor('urls.show', ['id' => (string) $sameName->getId()]),
+                    $this->router->urlFor('urls.show', ['id' => (string) $sameName->getId()]),
                     301
                 );
             }
 
             $url = new Url($normalizedUrl);
-            $urlRepository->create($url);
+            $this->urlRepository->create($url);
 
-            $this->container->get('flash')->addMessage('success', 'Страница успешно добавлена');
+            $this->flash->addMessage('success', 'Страница успешно добавлена');
 
             return $response->withRedirect(
-                $this->container->get('router')->urlFor('urls.show', ['id' => (string) $url->getId()]),
+                $this->router->urlFor('urls.show', ['id' => (string) $url->getId()]),
                 301
             );
         }
 
-        $twig = $this->container->get(Twig::class);
         $params = [
             'errors' => $validator->errors(),
             'url' => $urlData
         ];
 
-        return $twig->render($response, 'home.html.twig', $params)->withStatus(422);
+        return $this->render($response, 'home.html.twig', $params)->withStatus(422);
     }
 
     /**
-     * @throws NotFoundExceptionInterface
-     * @throws ContainerExceptionInterface
      * @param array<string, mixed> $args
      */
-    public function show(Request $request, Response $response, array $args): Response
+    public function show(Request $request, Response $response, array $args): ResponseInterface
     {
         $id = (int) $args['id'];
-        $url = $this->container->get(UrlRepository::class)->findById($id);
+        $url = $this->urlRepository->findById($id);
 
         if (!$url) {
             throw new HttpNotFoundException($request);
         }
 
-        $urlChecks = $this->container->get(UrlCheckRepository::class)->findByUrlId($url->getId());
+        $urlChecks = $this->urlCheckRepository->findByUrlId($id);
 
-        $messages = $this->container->get('flash')->getMessages();
+        $messages = $this->flash->getMessages();
         $params = [
             'url' => $url,
             'checks' => $urlChecks,
             'flash' => $messages
         ];
-        $twig = $this->container->get(Twig::class);
 
-        return $twig->render($response, 'urls/show.html.twig', $params);
+        return $this->render($response, 'urls/show.html.twig', $params);
     }
 }

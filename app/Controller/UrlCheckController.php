@@ -11,31 +11,41 @@ use GuzzleHttp\Exception\RequestException;
 use Hexlet\Code\Model\UrlCheck;
 use Hexlet\Code\Repository\UrlCheckRepository;
 use Hexlet\Code\Repository\UrlRepository;
-use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\NotFoundExceptionInterface;
+use Monolog\Logger;
 use Slim\Exception\HttpNotFoundException;
+use Slim\Flash\Messages;
 use Slim\Http\ServerRequest as Request;
 use Slim\Http\Response;
+use Psr\Http\Message\ResponseInterface;
+use Slim\Interfaces\RouteParserInterface;
+use Slim\Views\Twig;
 
 class UrlCheckController extends Controller
 {
+    public function __construct(
+        Messages $flash,
+        RouteParserInterface $router,
+        Logger $logger,
+        Twig $twig,
+        private readonly UrlRepository $urlRepository,
+        private readonly UrlCheckRepository $urlCheckRepository
+    ) {
+        parent::__construct($flash, $router, $logger, $twig);
+    }
+
     /**
-     * @throws ContainerExceptionInterface
-     * @throws GuzzleException
-     * @throws NotFoundExceptionInterface
-     * @throws InvalidSelectorException
      * @param array<string, mixed> $args
      */
-    public function store(Request $request, Response $response, array $args): Response
+    public function store(Request $request, Response $response, array $args): ResponseInterface
     {
         $urlId = (int) $args['url_id'];
-        $url = $this->container->get(UrlRepository::class)->findById($urlId);
+        $url = $this->urlRepository->findById($urlId);
 
         if (!$url) {
             throw new HttpNotFoundException($request);
         }
 
-        $urlCheck = new UrlCheck($url->getId());
+        $urlCheck = new UrlCheck($urlId);
         $client = new Client();
 
         try {
@@ -58,9 +68,9 @@ class UrlCheckController extends Controller
             $urlCheck->setTitle($title);
             $urlCheck->setDescription($description);
 
-            $this->container->get(UrlCheckRepository::class)->create($urlCheck);
+            $this->urlCheckRepository->create($urlCheck);
 
-            $this->container->get('flash')->addMessage('success', 'Страница успешно проверена');
+            $this->flash->addMessage('success', 'Страница успешно проверена');
         } catch (RequestException $e) {
             $statusCode = $e->getCode();
             $exceptionResponse = $e->getResponse();
@@ -71,17 +81,27 @@ class UrlCheckController extends Controller
             $urlCheck->setH1($text);
             $urlCheck->setTitle($text);
 
-            $this->container->get(UrlCheckRepository::class)->create($urlCheck);
+            $this->urlCheckRepository->create($urlCheck);
 
-            $this->container->get('flash')
+            $this->flash
                 ->addMessage('warning', 'Проверка была выполнена успешно, но сервер ответил с ошибкой');
         } catch (ConnectException) {
-            $this->container->get('flash')
+            $this->flash
                 ->addMessage('danger', 'Произошла ошибка при проверке, не удалось подключиться');
+        } catch (GuzzleException $e) {
+            $this->logger->error('Guzzle Error', ['exception' => $e]);
+
+            $this->flash
+                ->addMessage('danger', 'Произошла ошибка при проверке, не удалось подключиться');
+        } catch (InvalidSelectorException $e) {
+            $this->logger->error('DiDOM Invalid Selector Error', ['exception' => $e]);
+
+            $this->flash
+                ->addMessage('danger', 'Произошла ошибка при анализе HTML страницы');
         }
 
         return $response->withRedirect(
-            $this->container->get('router')->urlFor('urls.show', ['id' => (string) $url->getId()]),
+            $this->router->urlFor('urls.show', ['id' => (string) $url->getId()]),
             301
         );
     }
