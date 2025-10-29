@@ -13,3 +13,14 @@ start:
 
 start-local:
 	php -S localhost:8080 -t public public/index.php
+
+db-prepare:
+	@if [ ! -f .env ]; then \
+		echo "Error: .env file not found"; \
+		exit 1; \
+	fi
+	@if [ ! -f database.sql ]; then \
+		echo "Error: database.sql file not found"; \
+		exit 1; \
+	fi
+	psql $(shell grep DATABASE_URL .env | cut -d '=' -f2) -f database.sql
