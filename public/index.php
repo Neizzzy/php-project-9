@@ -6,6 +6,7 @@ use Hexlet\Code\Controller\UrlCheckController;
 use Hexlet\Code\Controller\UrlController;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
+use Psr\Http\Message\ServerRequestInterface;
 use Slim\Exception\HttpNotFoundException;
 use Slim\Factory\AppFactory;
 use Slim\Flash\Messages;
@@ -51,20 +52,21 @@ $container->set(PDO::class, function () use ($container) {
         }
 
         $params = parse_url($_ENV['DATABASE_URL']);
-        if (!isset($params['host'], $params['path'], $params['user'], $params['pass'])) {
+        if (!isset($params['host'], $params['path'], $params['user'])) {
             throw new RuntimeException('Invalid DATABASE_URL params');
         }
 
         $dsn = sprintf(
-            "pgsql:host=%s;port=%s;dbname=%s;user=%s;password=%s",
+            "pgsql:host=%s;port=%s;dbname=%s",
             $params['host'],
             $params['port'] ?? 5432,
-            ltrim($params['path'], '/'),
-            $params['user'],
-            $params['pass']
+            ltrim($params['path'], '/')
         );
 
-        $conn = new PDO($dsn);
+        $username = $params['user'];
+        $password = $params['pass'] ?? '';
+
+        $conn = new PDO($dsn, $username, $password);
         $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
         return $conn;
@@ -86,11 +88,11 @@ $app->add(MethodOverrideMiddleware::class);
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 $errorMiddleware->setErrorHandler(
     [RuntimeException::class, PDOException::class],
-    function (Throwable $e) use ($container) {
+    function (ServerRequestInterface $request, Throwable $e) use ($container) {
         $logger = $container->get(Logger::class);
         $logger->error('Error', ['exception' => $e]);
 
-        $twig = $this->get(Twig::class);
+        $twig = $container->get(Twig::class);
         $response = new Response();
 
         return $twig->render($response, 'errors/500.html.twig')->withStatus(500);
@@ -99,8 +101,8 @@ $errorMiddleware->setErrorHandler(
 
 $errorMiddleware->setErrorHandler(
     HttpNotFoundException::class,
-    function () {
-        $twig = $this->get(Twig::class);
+    function () use ($container) {
+        $twig = $container->get(Twig::class);
         $response = new Response();
 
         return $twig->render($response, 'errors/404.html.twig')->withStatus(404);
