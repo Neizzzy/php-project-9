@@ -7,19 +7,37 @@
 [![PHP CI](https://github.com/Neizzzy/php-project-9/actions/workflows/ci.yml/badge.svg)](https://github.com/Neizzzy/php-project-9/actions/workflows/ci.yml)
 
 # Page Analyser
-____
+___
 
 ## Requirements:
-____
+___
 - PHP >= 8.3
 - Composer
+- PostgreSQL
 - Make
 
 ## Usage
-____
+___
+
+### 1. Create .env file and add DATABASE_URL variable
+Add your database connection (example):
 ```
-make install
-make start or make start-local
+DATABASE_URL=postgresql://username:password@localhost:5432/your_database_name
 ```
 
+### 2. Run commands:
+```
+make install
+```
+```
+make db-prepare
+```
+```
+make start
+```
+or
+```
+make start-local
+```
+___
 Demo: https://neizzzy-page-analyser.onrender.com/
